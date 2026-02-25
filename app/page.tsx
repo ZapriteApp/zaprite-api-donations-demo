@@ -1,65 +1,171 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+const PRESETS = [1, 5, 10, 25, 50, 100];
+
+export default function DonationsPage() {
+  const [amount, setAmount] = useState<number | null>(null);
+  const [customAmount, setCustomAmount] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [totals, setTotals] = useState<{
+    totalDonations: number;
+    totalAmount: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/orders")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data && typeof data.totalDonations === "number")
+          setTotals({
+            totalDonations: data.totalDonations,
+            totalAmount: data.totalAmount ?? 0,
+          });
+      })
+      .catch(() => {});
+  }, []);
+
+  const selectedAmount =
+    amount !== null ? amount : (customAmount ? parseFloat(customAmount) : null);
+  const isValid =
+    selectedAmount !== null &&
+    !Number.isNaN(selectedAmount) &&
+    selectedAmount > 0;
+
+  async function handleDonate() {
+    if (!isValid || selectedAmount == null) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: selectedAmount }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to create order");
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+      throw new Error("No checkout URL");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-muted/30">
+      <div className="mx-auto max-w-2xl px-4 py-10">
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-xl">
+              St. Michael&apos;s Community Church
+            </CardTitle>
+            <CardDescription className="text-base">
+              Our church family supports local families in need, community meals,
+              and youth programs. Your gift helps us keep the doors open and the
+              coffee on. Every dollar goes directly to our outreach and
+              ministries—thank you for being part of this community.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        {(totals !== null && (totals.totalDonations > 0 || totals.totalAmount > 0)) && (
+          <Card className="mb-8 border-primary/20 bg-primary/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Total impact</CardTitle>
+              <CardDescription>
+                So far our community has given:
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex gap-6">
+              <div>
+                <p className="text-2xl font-semibold tabular-nums text-primary">
+                  {totals.totalDonations}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Total donations
+                </p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold tabular-nums text-primary">
+                  ${(totals.totalAmount / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-sm text-muted-foreground">Total amount</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Choose an amount</CardTitle>
+            <CardDescription>
+              Select a preset or enter a custom amount (USD).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-3 gap-3">
+              {PRESETS.map((value) => (
+                <Button
+                  key={value}
+                  variant={amount === value ? "default" : "outline"}
+                  size="lg"
+                  className="h-12"
+                  onClick={() => {
+                    setAmount(value);
+                    setCustomAmount("");
+                  }}
+                >
+                  ${value}
+                </Button>
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-3 flex flex-col gap-2">
+                <label
+                  htmlFor="custom-amount"
+                  className="text-sm font-medium text-muted-foreground"
+                >
+                  Custom amount
+                </label>
+                <Input
+                  id="custom-amount"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="Enter amount (e.g. 15.00)"
+                  value={customAmount}
+                  onChange={(e) => {
+                    setCustomAmount(e.target.value);
+                    setAmount(null);
+                  }}
+                />
+              </div>
+            </div>
+            <Button
+              size="lg"
+              className="w-full"
+              disabled={!isValid || loading}
+              onClick={handleDonate}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+              {loading ? "Redirecting…" : `Donate $${selectedAmount != null ? selectedAmount.toFixed(2) : "—"}`}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
