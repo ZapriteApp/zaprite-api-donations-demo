@@ -13,15 +13,15 @@ Use it as a starting point if you want to see how Zaprite can power payments, ho
 - [lucide-react](https://lucide.dev/) icons
 - Zaprite API calls from `lib/zaprite.ts`
 
-The API helper in this demo is intentionally small and easy to read. In a production app, you can use the official `zaprite/api` SDK for the same Zaprite order operations with typed helpers and less request boilerplate.
+The API helper in this demo is intentionally small and easy to read. In a production app, you can use the official [`zaprite/api` JS SDK](https://www.npmjs.com/package/@zaprite/api/) for the same Zaprite order operations with typed helpers and less request boilerplate.
 
 ## What The Demo Shows
 
 - Creating a Zaprite order from a server-side Next.js route
-- Passing a custom checkout ID, amount, currency, tags, and redirect URL
+- Passing a custom `checkoutId`, `amount`, `currency`, `tags`, and `redirectUrl`
 - Redirecting the donor to Zaprite's hosted checkout
-- Reading an order after payment using the returned `orderId`
-- Listing recent orders to display simple donation totals
+- Reading an Order after payment using the returned `orderId`
+- Listing recent Orders to display simple donation totals
 - Keeping the Zaprite API key on the server, never in browser code
 
 ## Getting Started
@@ -52,9 +52,9 @@ Open [http://localhost:3000](http://localhost:3000) to try the donation flow.
 
 To test the full flow, you will need:
 
-- A Zaprite API key with access to create and read orders
-- A Zaprite checkout configured in your Zaprite account
-- The checkout's custom checkout ID, used as `ZAPRITE_CHECKOUT_ID`
+- A Zaprite API key with access to create and read Orders
+- A Zaprite Checkout configured in your Zaprite account
+- The Checkout's custom checkout ID, used as `ZAPRITE_CHECKOUT_ID`
 
 When a donation is submitted, `app/api/orders/route.ts` calls `createOrder()` in `lib/zaprite.ts`. Zaprite returns a hosted `checkoutUrl`, and the app redirects the donor there. After payment, Zaprite redirects back to `/thank-you` with the order ID so the app can fetch and display the final order details.
 
