@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Zaprite API Donations Demo
+
+This is a small demo site for showcasing Zaprite's API in a real donation flow. It lets a donor choose an amount, creates a Zaprite order on the server, redirects the donor to the hosted Zaprite checkout, and then displays the completed order after Zaprite redirects back to the app.
+
+Use it as a starting point if you want to see how Zaprite can power payments, hosted checkouts, donation pages, fundraisers, memberships, or any other flow where your app creates an order and hands payment collection to Zaprite.
+
+## Stack
+
+- [Next.js](https://nextjs.org/) App Router with React Server/API routes
+- [React](https://react.dev/) 19 and TypeScript
+- [Tailwind CSS](https://tailwindcss.com/) 4
+- [shadcn/ui](https://ui.shadcn.com/) style components built on [Radix UI](https://www.radix-ui.com/)
+- [lucide-react](https://lucide.dev/) icons
+- Zaprite API calls from `lib/zaprite.ts`
+
+The API helper in this demo is intentionally small and easy to read. In a production app, you can use the official `zaprite/api` SDK for the same Zaprite order operations with typed helpers and less request boilerplate.
+
+## What The Demo Shows
+
+- Creating a Zaprite order from a server-side Next.js route
+- Passing a custom checkout ID, amount, currency, tags, and redirect URL
+- Redirecting the donor to Zaprite's hosted checkout
+- Reading an order after payment using the returned `orderId`
+- Listing recent orders to display simple donation totals
+- Keeping the Zaprite API key on the server, never in browser code
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create `.env.local` with your Zaprite credentials:
+
+```bash
+ZAPRITE_API_KEY=your_zaprite_api_key
+ZAPRITE_CHECKOUT_ID=your_custom_checkout_id
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+Then run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to try the donation flow.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Zaprite Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To test the full flow, you will need:
 
-## Learn More
+- A Zaprite API key with access to create and read orders
+- A Zaprite checkout configured in your Zaprite account
+- The checkout's custom checkout ID, used as `ZAPRITE_CHECKOUT_ID`
 
-To learn more about Next.js, take a look at the following resources:
+When a donation is submitted, `app/api/orders/route.ts` calls `createOrder()` in `lib/zaprite.ts`. Zaprite returns a hosted `checkoutUrl`, and the app redirects the donor there. After payment, Zaprite redirects back to `/thank-you` with the order ID so the app can fetch and display the final order details.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Trying The API
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The fastest way to experiment is to edit `lib/zaprite.ts`:
 
-## Deploy on Vercel
+- Change the `currency` or amount conversion rules
+- Add your own `externalUniqId` format to connect Zaprite orders to records in your database
+- Add or change `tags` so orders can be filtered later in Zaprite
+- Toggle payment notifications with `disablePaymentNotifs`
+- Swap the direct `fetch` calls for the `zaprite/api` SDK once you are ready to build on the official client
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+For a production app, keep API keys in server-only environment variables, validate amounts against server-side business rules, persist the created order ID in your database, and handle Zaprite webhooks if your app needs asynchronous payment status updates.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Useful Files
+
+- `app/page.tsx` - donation form and donor-facing UI
+- `app/api/orders/route.ts` - creates Zaprite orders and lists totals
+- `app/api/orders/[orderId]/route.ts` - fetches a single order
+- `lib/zaprite.ts` - minimal Zaprite API helper
+- `components/ui/` - reusable shadcn/ui primitives
